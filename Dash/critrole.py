@@ -9,8 +9,7 @@ import plotly.figure_factory as ff
 
 app = dash.Dash(__name__)
 server = app.server
-app.title = "Transcript explorer"
-app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
+app.title = "Transcript Explorer"
 
 data = pd.read_pickle('cleandata.pk1')
 
@@ -20,27 +19,28 @@ episodemarks[str(data['episode'].max())] = str(data['episode'].max())
 
 
 app.layout = html.Div(children=[
-    html.Div([html.H1(children='Critical Role transcript explorer')],
-        style = {'font-family': 'Georgia'}),
+    html.Div([html.H1(children='Critical Role Transcript Explorer')]),
 
     html.Div([html.Div(children =
-        "Welcome to the Critical Role transcript explorer! Critical Role is a populuar vodcast in which voice actors play Dungeons & Dragons (check them out on critrole.com). Because D&D is a game that takes place almost entirely through language, I thought it'd be a cool place to help people explore language patterns! Enter any number of words or phrases separated by a comma to see how frequently each member of the cast said that word or phrase. Also, use the slider below the graph to filter the episodes over which the graph is generated."
-    )], style = {'font-family': 'Georgia'}),
+        "Welcome to the Critical Role transcript explorer! Critical Role is a populuar vodcast in which voice actors play Dungeons & Dragons (check them out on critrole.com). Because D&D is a game that takes place almost entirely through language, I thought it'd be a cool place to help people explore language patterns! Enter any number of words or phrases separated by a comma to see how frequently each member of the cast said that word or phrase. Also, use the slider below the graph to filter the episodes over which the graph is generated. Submitting just one word or one speaker will let you compare on a single graph."
+    )]),
     html.Br(),
     html.Div([
-        html.Div(children = "Speaker:"),
+        html.Div(children = "Speaker(s):"),
         dcc.Input(id='speaker_input', type='text', value='Sam, Laura, Travis, Matt, Liam, Marisha, Taliesin, Ashley', size = 60, minlength = 1),
         html.Br(),
         html.Br(),
         html.Div(children = "Word(s):"),
-        dcc.Input(id='word_input', type='text', value='Bigby, Trinket, rage, damage, uncanny dodge, Elemental, Bad News, Sarenrae', size = 60, minlength = 1),
+        dcc.Input(id='word_input', type='text', value='Bigby, Trinket, rage, dagger, Elemental, Bad News, Sarenrae', size = 60, minlength = 1),
         html.Br(),
         html.Br(),
         html.Button(id='submit_button', n_clicks = 0, children='Update')]),
     
         html.Div([dcc.Graph(id='fig')],
-            style = {'margin': 'auto'}),
+            style = {'display':'block'}),
 
+        html.Div(children = "Episode Filter:",
+        style={'width': '80%', 'margin': 'auto'}),
         html.Div([dcc.RangeSlider(
             id = 'episode_slider',
             min = data['episode'].min(),
@@ -54,10 +54,12 @@ app.layout = html.Div(children=[
         html.Br(),
         html.Div([html.Div(children =
         "Below is a link to a walkthrough of the code used used to turn the raw subtitle files into this graph, as well as the github repo containing all of the data and scripts. This script can be easily adapted for use on any folder of txt subtitle files. Enjoy exploring!"
-    )], style = {'font-family': 'Georgia'}),
+    )]),
         html.Br(),
         html.Div([html.A('Walkthrough', href='http://acsweb.ucsd.edu/~btomosch/critrole.html')]),
         html.Div([html.A('Github', href='https://github.com/tomoschuk/TranscriptExplorer')]),
+        html.Br(),
+        html.Br(),
         html.Br()
         ])
 
@@ -115,24 +117,36 @@ def update_figure(n_clicks, episode_slider, word_input, speaker_input):
 
     #Graph
     if len(words) != 1:
-        fig = ff.create_facet_grid(
+        if len(peeps) != 1:
+            fig = ff.create_facet_grid(
+                df,
+                x='Number of times said per 1000 words',
+                y='word',
+                facet_col='speaker',
+                color_name='speaker',
+                trace_type='bar',
+                orientation = 'h',
+                scales = 'free',
+                width = 1200
+            )
+            for i in range(len(peeps)+1):
+                if i == 0:
+                    fig.layout.xaxis.update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})
+                else:
+                    exec('fig.layout.xaxis' + str(i)+".update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})")
+
+            fig.layout.update(plot_bgcolor='rgba(230,230,230,90)')
+        elif len(peeps) == 1: 
+            fig = ff.create_facet_grid(
             df,
-            x='Number of times said per 1000 words',
-            y='word',
-            facet_col='speaker',
-            color_name='speaker',
+            x='word',
+            y='Number of times said per 1000 words',
+            color_name='word',
             trace_type='bar',
-            orientation = 'h',
             scales = 'free',
             width = 1200
-        )
-        for i in range(len(peeps)+1):
-            if i == 0:
-                fig.layout.xaxis.update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})
-            else:
-                exec('fig.layout.xaxis' + str(i)+".update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})")
-
-        fig.layout.update(plot_bgcolor='rgba(230,230,230,90)')
+            )
+            fig.layout.update(plot_bgcolor='rgba(230,230,230,90)')
     elif len(words) == 1:
         fig = ff.create_facet_grid(
             df,
