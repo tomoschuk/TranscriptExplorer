@@ -3,6 +3,7 @@ Brendan Tomoschuk's dash app and accompanying files for crtranscriptexplorer.her
 
 # Setup & Use 
 
-* CritRoleDashboard.ipynb: a notebook that reads in the data, processes it, and generates the plotly graph
-* critrole.py: a python app that generates the dashboard using Dash and Plotly. Cleaned data are provided in the Dash/ folder
+* Notebook/CritRoleDashboard.ipynb: a notebook that reads in the data, processes it, and generates the plotly graph
+* Dash/critrole.py: a python app that generates the dashboard using Dash and Plotly. 
+* Dash/cleandata.pk1: cleaned data pandas data frame pickled.
 * FinalTextFiles: Raw data files used to create the dashboard. 
