@@ -5,6 +5,7 @@ import dash_html_components as html
 import pandas as pd
 import plotly.plotly as py
 import plotly.figure_factory as ff
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 app = dash.Dash(__name__)
@@ -53,8 +54,11 @@ app.layout = html.Div(children=[
         html.Br(),
         html.Br(),
         html.Div([html.Div(children =
-        "Below is a link to a walkthrough of the code used used to turn the raw subtitle files into this graph, as well as the github repo containing all of the data and scripts. This script can be easily adapted for use on any folder of txt subtitle files. Enjoy exploring!"
-    )]),
+        '* As calculated by TF-IDF (Term Frequency - Inverse Document Frequency) - a metric that tells you how distinguishing a word is among a set of words and speakers. It gets HIGHER as a certain person says the word, but LOWER when everyone else says the word. So words like "ok" will not have high scores, even when someone says them a lot... but words that one person uses a lot could have very high scores! Enjoy exploring!'
+        )]),
+        html.Div([html.Div(children =
+        "Below is a link to a walkthrough of the code used used to turn the raw subtitle files into this graph, as well as the github repo containing all of the data and scripts. This script can be easily adapted for use on any folder of txt subtitle files."
+        )]),
         html.Br(),
         html.Div([html.A('Walkthrough', href='http://acsweb.ucsd.edu/~btomosch/critrole.html')]),
         html.Div([html.A('Github', href='https://github.com/tomoschuk/TranscriptExplorer')]),
@@ -118,6 +122,17 @@ def update_figure(n_clicks, episode_slider, word_input, speaker_input):
     #Graph
     if len(words) != 1:
         if len(peeps) != 1:
+            #Apply the tfidf function, and find the most "distinguishing" word among the given words and speakers
+            tfidf = TfidfVectorizer(stop_words='english', vocabulary = words)
+            tfs = tfidf.fit_transform(finaldata['text'])
+            matrix = pd.DataFrame(tfs.todense(), index = peeps, columns = tfidf.get_feature_names()).transpose()
+            matrix['word'] = matrix.index
+            matrix = pd.melt(matrix, id_vars = 'word')
+            matrix = matrix.rename(index=str, columns={'value': "tfidf",'variable': "speaker"})
+            distWord = matrix.loc[matrix['tfidf'].idxmax()]['word']
+            distSpeaker = matrix.loc[matrix['tfidf'].idxmax()]['speaker']
+            tfidfSent = ("Most distinguishing: '" + distWord + "' by " + distSpeaker + ".*")
+
             fig = ff.create_facet_grid(
                 df,
                 x='Number of times said per 1000 words',
@@ -134,8 +149,9 @@ def update_figure(n_clicks, episode_slider, word_input, speaker_input):
                     fig.layout.xaxis.update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})
                 else:
                     exec('fig.layout.xaxis' + str(i)+".update({'range': [df['Number of times said per 1000 words'].min(), (df['Number of times said per 1000 words'].max()+(.15 * df['Number of times said per 1000 words'].max()))]})")
-
+            fig.layout.xaxis.title = tfidfSent
             fig.layout.update(plot_bgcolor='rgba(230,230,230,90)')
+
         elif len(peeps) == 1: 
             fig = ff.create_facet_grid(
             df,
